@@ -10,7 +10,7 @@
 #define POWER_LIMIT 75   // モーターの最大パワー
 #define KP 1.000   // 姿勢制御比例ゲイン
 #define KD 5.000   // 姿制御微分ゲイン
-#define PD_LIMIT 55   // 姿勢制御の最大パワー
+#define PD_LIMIT 75   // 姿勢制御の最大パワー
 #define MOVING_AVERAGE_COUNT_NUMBER 5   // 移動平均フィルタの回数
 #define D_PERIODO 0.01
 class motor {
