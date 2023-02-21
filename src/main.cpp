@@ -16,10 +16,15 @@ Serial arduino_ui(PA_2, PA_3);   // TX, RX
 
 void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed);
 
-int16_t yaw, set_yaw;
+void ui_putc();
 
 void ir_getc();
+
+bool imu_validation = 0;
+int16_t yaw, set_yaw;
 void imu_getc();
+
+uint8_t mode = 0;
 void ui_getc();
 
 Timer line_timer;
@@ -28,53 +33,82 @@ int main() {
       Line.led(1);
       Line.set();
 
-      uint8_t mode;
-
       uint8_t line_tf;
-      int16_t move_speed = 30, line_move_speed = 50;
+      int16_t move_speed = 50, line_move_speed = 70;
 
-      arduino_ir.baud(57600);
-      arduino_imu.baud(57600);
-      arduino_ui.baud(57600);
+      arduino_ir.baud(28800);
+      arduino_imu.baud(28800);
+      arduino_ui.baud(28800);
 
-      arduino_ir.attach(ir_getc, Serial::RxIrq);
       arduino_imu.attach(imu_getc, Serial::RxIrq);
       arduino_ui.attach(ui_getc, Serial::RxIrq);
 
       while (1) {
             Motor.yaw = yaw;
             Line.read();
+            if (arduino_ir.readable()) ir_getc();
 
             if (mode == 0) {
+                  // ui_putc();
+                  //  Motor.free();
+            } else if (mode == 1) {
                   line_move(&line_tf, line_move_speed, move_speed);
                   if (line_tf == 0) {
-                        Motor.run(0, 0);
+                        Motor.run(90, move_speed);
                   }
-            } else if (mode == 1) {
             } else if (mode == 2) {
-            } else if (mode == 3) {
+                  Motor.run(0, 0);
             }
       }
 }
 
-void ir_getc() {   // IMU情報の取得
+void ir_getc() {
       if (arduino_ir.getc() == 'a') {
       }
 }
 
-void imu_getc() {   // IMU情報の取得
+void imu_getc() {
       if (arduino_imu.getc() == 'a') {
-            int16_t yaw_plus, yaw_minus;
+            uint8_t yaw_plus, yaw_minus;
             yaw_plus = arduino_imu.getc();
             yaw_minus = arduino_imu.getc();
             yaw = (yaw_plus == 0 ? yaw_minus * -1 : yaw_plus) - set_yaw;
             yaw -= yaw > 180 ? 360 : (yaw < -180 ? -360 : 0);
+            imu_validation = 1;
       }
 }
 
-void ui_getc() {   // IMU情報の取得
+void ui_getc() {
+      uint8_t display_mode = 0, dribbler_test = 0;
       if (arduino_ui.getc() == 'a') {
+            display_mode = arduino_ui.getc();
+            if (display_mode == 0) {
+                  mode = arduino_ui.getc();
+            } else if (display_mode == 1) {
+                  dribbler_test = arduino_ui.getc();
+                  if (dribbler_test == 0) Dribbler.stop();
+                  if (dribbler_test == 1) Dribbler.hold();
+                  if (dribbler_test == 2) Dribbler.kick();
+            } else if (display_mode == 2) {
+            } else if (display_mode == 3) {
+            }
       }
+}
+
+void ui_putc() {
+      arduino_ui.putc('a');
+      arduino_ui.putc(imu_validation);
+      arduino_ui.putc(Line.check(0));
+      arduino_ui.putc(Line.check(1));
+      arduino_ui.putc(Line.check(2));
+      arduino_ui.putc(Line.check(3));
+      arduino_ui.putc(Line.check(4));
+      arduino_ui.putc(Line.check(5));
+      arduino_ui.putc(Line.check(6));
+      arduino_ui.putc(Line.check(7));
+      arduino_ui.putc(Line.check(8));
+      arduino_ui.putc(Line.check(9));
+      arduino_ui.putc(Line.check(10));
 }
 
 void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
@@ -86,7 +120,7 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
       if (Line.check_all()) {
             line_timer.start();
             line_timer.reset();
-            if (*line_tf == 0) Motor.brake(25);
+            if (*line_tf == 0) Motor.brake(50);
 
             if (Line.check_right() && line_tf_x <= 2) line_tf_x = 1;
             if (Line.check(4) && line_tf_x == 1) line_tf_x = 3;
