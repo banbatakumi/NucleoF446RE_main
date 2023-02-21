@@ -5,13 +5,13 @@
 
 #define PI 3.1415926535   // 円周率
 
-#define MOTOR_FREQUENCY 20000   // モーターのPWM周波数
-#define MIN_BRAKE 0  // モーターの最小値ブレーキ
-#define POWER_LIMIT 75   // モーターの最大パワー
+#define MOTOR_FREQUENCY 25000   // モーターのPWM周波数
+#define MIN_BRAKE 5   // モーターの最小値ブレーキ
+#define POWER_LIMIT 80   // モーターの最大パワー
 #define KP 1.000   // 姿勢制御比例ゲイン
 #define KD 5.000   // 姿制御微分ゲイン
-#define PD_LIMIT 75   // 姿勢制御の最大パワー
-#define MOVING_AVERAGE_COUNT_NUMBER 5   // 移動平均フィルタの回数
+#define PD_LIMIT 80   // 姿勢制御の最大パワー
+#define MOVING_AVERAGE_COUNT_NUMBER 20   // 移動平均フィルタの回数
 #define D_PERIODO 0.01
 class motor {
      public:

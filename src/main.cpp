@@ -31,11 +31,11 @@ int main() {
       uint8_t mode;
 
       uint8_t line_tf;
-      int16_t move_speed = 50, line_move_speed = 80;
+      int16_t move_speed = 30, line_move_speed = 50;
 
-      arduino_ir.baud(28800);
-      arduino_imu.baud(28800);
-      arduino_ui.baud(9600);
+      arduino_ir.baud(57600);
+      arduino_imu.baud(57600);
+      arduino_ui.baud(57600);
 
       arduino_ir.attach(ir_getc, Serial::RxIrq);
       arduino_imu.attach(imu_getc, Serial::RxIrq);
@@ -48,7 +48,7 @@ int main() {
             if (mode == 0) {
                   line_move(&line_tf, line_move_speed, move_speed);
                   if (line_tf == 0) {
-                        Motor.run(90, move_speed);
+                        Motor.run(0, 0);
                   }
             } else if (mode == 1) {
             } else if (mode == 2) {
@@ -83,21 +83,21 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
       static uint8_t line_tf_x, line_tf_y;
       static int16_t line_result_vector_x, line_result_vector_y, pre_line_result_vector_x, pre_line_result_vector_y, line_back_angle;
 
-      if (Line.check_all() == 1) {
+      if (Line.check_all()) {
             line_timer.start();
             line_timer.reset();
-            if (*line_tf == 0) Motor.brake(10);
+            if (*line_tf == 0) Motor.brake(25);
 
-            if (Line.check_right() == 1 && line_tf_x <= 2) line_tf_x = 1;
+            if (Line.check_right() && line_tf_x <= 2) line_tf_x = 1;
             if (Line.check(4) && line_tf_x == 1) line_tf_x = 3;
-            if (Line.check_left() == 1 && line_tf_x <= 2) line_tf_x = 2;
+            if (Line.check_left() && line_tf_x <= 2) line_tf_x = 2;
             if (Line.check(10) && line_tf_x == 2) line_tf_x = 4;
-            if (Line.check_front() == 1 && line_tf_y <= 2) line_tf_y = 1;
+            if (Line.check_front() && line_tf_y <= 2) line_tf_y = 1;
             if (Line.check(1) && line_tf_y == 1) line_tf_y = 3;
-            if (Line.check_back() == 1 && line_tf_y <= 2) line_tf_y = 2;
+            if (Line.check_back() && line_tf_y <= 2) line_tf_y = 2;
             if (Line.check(7) && line_tf_y == 2) line_tf_y = 4;
-            if ((Line.check(0) == 1 && Line.check_back() == 1) || (Line.check(5) == 1 && Line.check_front() == 1)) line_tf_y = 0;
-            if ((Line.check(2) == 1 && Line.check_left() == 1) || (Line.check(8) == 1 && Line.check_right() == 1)) line_tf_x = 0;
+            if ((Line.check(0) && Line.check_back()) || (Line.check(5) && Line.check_front())) line_tf_y = 0;
+            if ((Line.check(2) && Line.check_left()) || (Line.check(8) && Line.check_right())) line_tf_x = 0;
       }
       for (uint8_t count = 0; count < 2; count++) {
             line_tf_x_unit[count] = line_tf_x == count + 1 || line_tf_x == count + 3 ? 1 : 0;
@@ -105,10 +105,10 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
       }
 
       if (*line_tf == 0) {
-            if (line_tf_y_unit[0] == 1) *line_tf = 1;
-            if (line_tf_x_unit[0] == 1) *line_tf = 2;
-            if (line_tf_y_unit[1] == 1) *line_tf = 3;
-            if (line_tf_x_unit[1] == 1) *line_tf = 4;
+            if (line_tf_y_unit[0]) *line_tf = 1;
+            if (line_tf_x_unit[0]) *line_tf = 2;
+            if (line_tf_y_unit[1]) *line_tf = 3;
+            if (line_tf_x_unit[1]) *line_tf = 4;
       }
 
       if (*line_tf != 0) {
@@ -120,13 +120,13 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
                   pre_line_result_vector_y = line_result_vector_y;
                   if (line_back_angle > 180) line_back_angle -= 360;
 
-                  if (line_tf_x_unit[0] == 1 && line_tf_y_unit[0] == 1) {
+                  if (line_tf_x_unit[0] && line_tf_y_unit[0]) {
                         tmp_move_angle = line_back_angle > 135 || line_back_angle < -45 ? line_back_angle : line_back_angle - 180;
-                  } else if (line_tf_x_unit[0] == 1 && line_tf_y_unit[1] == 1) {
+                  } else if (line_tf_x_unit[0] && line_tf_y_unit[1]) {
                         tmp_move_angle = line_back_angle > -135 && line_back_angle < 45 ? line_back_angle : line_back_angle - 180;
-                  } else if (line_tf_x_unit[1] == 1 && line_tf_y_unit[1] == 1) {
+                  } else if (line_tf_x_unit[1] && line_tf_y_unit[1]) {
                         tmp_move_angle = line_back_angle > -45 && line_back_angle < 135 ? line_back_angle : line_back_angle - 180;
-                  } else if (line_tf_x_unit[1] == 1 && line_tf_y_unit[0] == 1) {
+                  } else if (line_tf_x_unit[1] && line_tf_y_unit[0]) {
                         tmp_move_angle = line_back_angle > 45 || line_back_angle < -135 ? line_back_angle : line_back_angle - 180;
                   } else if (line_tf_y_unit[0]) {
                         tmp_move_angle = line_back_angle < -90 || line_back_angle > 90 ? line_back_angle : line_back_angle - 180;
@@ -137,7 +137,7 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
                   } else if (line_tf_x_unit[1]) {
                         tmp_move_angle = line_back_angle > 0 && line_back_angle < 180 ? line_back_angle : line_back_angle - 180;
                   }
-                  Motor.run(tmp_move_angle,line_move_speed);
+                  Motor.run(tmp_move_angle, line_move_speed);
 
             } else {
                   if (line_timer.read() > 0) {
