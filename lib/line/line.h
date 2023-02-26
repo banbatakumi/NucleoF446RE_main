@@ -25,7 +25,7 @@ class line {
       uint16_t threshold;
 
      private:
-      DigitalOut led_pin;
+      PwmOut led_pin;
       AnalogIn front_1;
       AnalogIn front_2;
       AnalogIn right_1;

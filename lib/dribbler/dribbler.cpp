@@ -19,12 +19,11 @@ void dribbler::test() {
       wait_us(500000);
 }
 
-void dribbler::hold(uint8_t speed){
+void dribbler::hold(uint8_t speed) {
       pin_1 = speed;
       pin_2 = 0;
 }
-void dribbler::kick(uint8_t speed){
-      wait_us(200000);
+void dribbler::kick(uint8_t speed) {
       pin_1 = 0;
       pin_2 = speed;
 }
