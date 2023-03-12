@@ -57,7 +57,7 @@ void line::set() {
 }
 
 bool line::check_all() {
-      if (check_tf[0] || check_tf[1] == 1 || check_tf[2] == 1 || check_tf[3] == 1 || check_tf[4] == 1 || check_tf[5] == 1 || check_tf[6] == 1 || check_tf[7] == 1 || check_tf[8] == 1 || check_tf[9] == 1 || check_tf[10] == 1) {
+      if (check_tf[0] || check_tf[1] || check_tf[2] || check_tf[3] || check_tf[4] || check_tf[5] || check_tf[6] || check_tf[7] || check_tf[8] || check_tf[9] || check_tf[10]) {
             return 1;
       } else {
             return 0;
@@ -65,23 +65,23 @@ bool line::check_all() {
 }
 
 bool line::check_front() {
-      return check_tf[0] == 1 || check_tf[1] == 1 ? 1 : 0;
+      return check_tf[0] || check_tf[1] ? 1 : 0;
 }
 
 bool line::check_right() {
-      return check_tf[2] == 1 || check_tf[3] == 1 || check_tf[4] == 1 ? 1 : 0;
+      return check_tf[2] || check_tf[3] || check_tf[4] ? 1 : 0;
 }
 
 bool line::check_back() {
-      return check_tf[5] == 1 || check_tf[6] == 1 || check_tf[7] == 1 ? 1 : 0;
+      return check_tf[5] || check_tf[6] || check_tf[7] ? 1 : 0;
 }
 
 bool line::check_left() {
-      return check_tf[8] == 1 || check_tf[9] == 1 || check_tf[10] == 1 ? 1 : 0;
+      return check_tf[8] || check_tf[9] || check_tf[10] ? 1 : 0;
 }
 
 bool line::check(uint8_t line_number) {
-      return check_tf[line_number] == 1 ? 1 : 0;
+      return check_tf[line_number] ? 1 : 0;
 }
 
 uint16_t line::get_value(uint8_t line_number) {

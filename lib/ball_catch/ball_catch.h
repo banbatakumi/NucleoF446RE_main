@@ -3,8 +3,8 @@
 
 #include "mbed.h"
 
-#define READ_NUMBER_OF_TIME 250   // ボールセンサを読む回数
-#define SAMPLE_NUMBER 25   // n回分の過去に読んだ値の使用
+#define READ_NUMBER_OF_TIME 200   // ボールセンサを読む回数
+#define SAMPLE_NUMBER 20   // n回分の過去に読んだ値の使用
 #define IR_NUM 2
 #define RC 0.9
 class ball_catch {

@@ -19,14 +19,14 @@ void motor::run(int16_t move_angle, int16_t move_speed, int8_t robot_angle) {
       angle = move_angle;
       speed = move_speed;
       if (move_speed > POWER_LIMIT) move_speed = POWER_LIMIT;   // 速度が上限を超えていないか
-      for (uint8_t count = 0; count < 4; count++) power[count] = sin((move_angle - (45 + count * 90)) * PI / 180.00000) * move_speed * (count < 2 ? -1 : 1);   // 角度とスピードを各モーターの値に変更
+      for (uint8_t count = 0; count < MOTOR_NUM; count++) power[count] = sin((move_angle - (45 + count * 90)) * PI / 180.00000) * move_speed * (count < 2 ? -1 : 1);   // 角度とスピードを各モーターの値に変更
 
       // モーターの最大パフォーマンス発揮
       maximum_power = 0;
-      for (uint8_t count = 0; count < 4; count++) {
+      for (uint8_t count = 0; count < MOTOR_NUM; count++) {
             if (maximum_power < abs(power[count])) maximum_power = abs(power[count]);
       }
-      for (uint8_t count = 0; count < 4; count++) power[count] *= float(move_speed) / maximum_power;
+      for (uint8_t count = 0; count < MOTOR_NUM; count++) power[count] *= float(move_speed) / maximum_power;
 
       // PD姿勢制御
       p = robot_angle - yaw;   // 比例
@@ -39,7 +39,7 @@ void motor::run(int16_t move_angle, int16_t move_speed, int8_t robot_angle) {
       if (abs(pd) > PD_LIMIT) pd = PD_LIMIT * (abs(pd) / pd);
 
       if (moving_average_count == MOVING_AVERAGE_COUNT_NUMBER) moving_average_count = 0;
-      for (uint8_t count = 0; count < 4; count++) {
+      for (uint8_t count = 0; count < MOTOR_NUM; count++) {
             power[count] += count < 2 ? -pd : pd;
             if (abs(power[count]) > POWER_LIMIT) power[count] = POWER_LIMIT * (abs(power[count]) / power[count]);   // モーターの上限値超えた場合の修正
 
@@ -49,6 +49,7 @@ void motor::run(int16_t move_angle, int16_t move_speed, int8_t robot_angle) {
             power[count] /= MOVING_AVERAGE_COUNT_NUMBER;
       }
       moving_average_count++;
+
       motor_1_1 = abs(power[0]) < MIN_BRAKE ? 1 : (power[0] > 0 ? power[0] * 0.01000 : 0);
       motor_1_2 = abs(power[0]) < MIN_BRAKE ? 1 : (power[0] < 0 ? power[0] * -0.01000 : 0);
       motor_2_1 = abs(power[1]) < MIN_BRAKE ? 1 : (power[1] > 0 ? power[1] * 0.01000 : 0);

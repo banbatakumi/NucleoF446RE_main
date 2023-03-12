@@ -9,10 +9,11 @@
 #define MIN_BRAKE 5   // モーターの最小値ブレーキ
 #define POWER_LIMIT 80   // モーターの最大パワー
 #define KP 1.500   // 姿勢制御比例ゲイン
-#define KD 10.000   // 姿制御微分ゲイン
-#define PD_LIMIT 80   // 姿勢制御の最大パワー
-#define MOVING_AVERAGE_COUNT_NUMBER 50   // 移動平均フィルタの回数
+#define KD 7.500   // 姿制御微分ゲイン
+#define PD_LIMIT 50   // 姿勢制御の最大パワー
+#define MOVING_AVERAGE_COUNT_NUMBER 25   // 移動平均フィルタの回数
 #define D_PERIODO 0.01
+#define MOTOR_NUM 4
 class motor {
      public:
       motor(PinName motor_1_1_, PinName motor_1_2_, PinName motor_2_1_, PinName motor_2_2_, PinName motor_3_1_, PinName motor_3_2_, PinName motor_4_1_, PinName motor_4_2_);

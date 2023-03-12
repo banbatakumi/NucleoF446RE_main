@@ -4,6 +4,7 @@
 #include "mbed.h"
 
 #define VOLTAGE_RC 0.9
+#define CHANGE_VOLTAGE 0.0002125037
 
 class voltage {
      public:
