@@ -7,27 +7,26 @@
 #include "motor.h"
 #include "voltage.h"
 
-HCSR04 usensor(PB_13, PB_7);
-
 #define PI 3.1415926535   // 円周率
 
-#define BALL_FOLLOW_RANGE 55.000   // 回り込み時にボールを追い始める角度
-#define BALL_FOLLOW_DEPTH_AWAY 30.000
-#define BALL_FOLLOW_DEPTH_NEAR 85.000
+#define BALL_FOLLOW_RANGE 130   // 回り込み時にボールを追い始める角度(標準値:130)
+#define BALL_FOLLOW_DEPTH_AWAY 30.000   // ボールが遠い時の回り込みの深さ(標準値:30)
+#define BALL_FOLLOW_DEPTH_NEAR 85.000   // ボールが近い時の回り込みの深さ(標準値:85)
 
-#define LINE_BALL_P 2.5
-#define LINE_BALL_WAIT_TIME 3
-#define LINE_BRAKE_TIME 50
+#define LINE_BALL_P 2.5   // ライン待機時にボールを追う比例制御のゲイン
+#define LINE_BALL_WAIT_TIME 3   // ライン待機時にボールを追う時間
+#define LINE_BRAKE_TIME 50   // ラインを踏んだ時のブレーキ時間(μs)
 
-#define SERIAL_BAUD 38400
+#define SERIAL_BAUD 38400   // UART通信速度
 
-#define CAM_CENTER 106
+#define CAM_CENTER 106   // カメラのセンター合わせ
 
 motor Motor(PA_10, PB_3, PB_5, PB_10, PA_9, PA_8, PA_5, PB_6);   //  45度、135度、225度、315度
 line Line(PC_9, PC_1, PB_0, PC_2, PC_3, PC_0, PA_1, PA_0, PA_4, PC_5, PB_1, PC_4);   // ledピン、前ライン、右ライン、後ライン、左ライン
 dribbler Dribbler(PC_8, PC_6);
 ball_catch Ball_catch(PB_9, PB_8);
 voltage Voltage(PA_6, PA_7);
+HCSR04 usensor(PB_13, PB_7);   // 超音波センサ
 
 Serial arduino_ir(PC_10, PC_11);   // TX, RX
 Serial arduino_imu(PC_12, PD_2);   // TX, RX
@@ -72,14 +71,18 @@ int main() {
             Voltage.read();
             usensor.start();
 
+            if (Voltage.get_battery_voltage() < 6) {
+            } else {
+            }
+
             if (mode == 0) {
                   Motor.free();
             } else if (mode == 1) {
                   line_move(&line_tf, line_move_speed, move_speed);
 
                   if (line_tf == 0) {
-                        if (ball_distance == 0) {
-                              if (goal_angle_mode == 0 || goal_angle == 0) {
+                        if (ball_distance == 0) {   // ボールない時
+                              if (goal_angle_mode == 0 || goal_angle == 0) {   // ゴールが見えていない時
                                     Motor.run(usensor.get_dist_cm() > 100 ? 180 : 0, abs(100 - usensor.get_dist_cm()) * 2);
                               } else {
                                     Motor.run(usensor.get_dist_cm() > 100 ? (goal_angle > 0 ? 135 : -135) : (goal_angle > 0 ? 45 : -45), abs(100 - usensor.get_dist_cm()) * 2 + abs(goal_angle) * 2);
@@ -106,7 +109,7 @@ int main() {
       }
 }
 
-void ir() {
+void ir() {   // ir用のマイコンとの通信
       if (arduino_ir.getc() == 'a') {
             uint8_t ball_angle_plus, ball_angle_minus;
             ball_angle_plus = arduino_ir.getc();
@@ -114,12 +117,12 @@ void ir() {
             ball_distance = arduino_ir.getc();
 
             ball_angle = ball_angle_plus == 0 ? ball_angle_minus * -1 : ball_angle_plus;
-            // ball_angle += yaw;
+            ball_angle += yaw;
             ball_angle -= ball_angle > 180 ? 360 : (ball_angle < -180 ? -360 : 0);
       }
 }
 
-void imu() {
+void imu() {   // imu用のマイコンとの通信
       if (arduino_imu.getc() == 'a') {
             imu_validation = 1;
             uint8_t yaw_plus, yaw_minus, yellow_angle, yellow_wide, blue_angle, blue_wide;
@@ -143,7 +146,7 @@ void imu() {
       }
 }
 
-void ui() {
+void ui() {   // ui用のマイコンとの通信
       uint8_t display_mode;
 
       if (arduino_ui.getc() == 'a') {
@@ -224,7 +227,7 @@ void ui() {
             }
       }
 }
-void offence_move() {
+void offence_move() {   // アタックモード
       int16_t tmp_move_speed, tmp_move_angle, robot_angle = 0;
       float move_angle_decrement;
 
@@ -232,8 +235,8 @@ void offence_move() {
 
       if (Ball_catch.get() > 50) {
             tmp_move_angle = Ball_catch.get_right() - Ball_catch.get_left();
-      } else if (abs(ball_angle) <= BALL_FOLLOW_RANGE) {
-            tmp_move_angle = ball_angle + (90.000 / BALL_FOLLOW_RANGE * ball_angle);
+      } else if (abs(ball_angle) <= BALL_FOLLOW_RANGE - ball_distance) {
+            tmp_move_angle = ball_angle + (90.000 / (BALL_FOLLOW_RANGE - ball_distance) * ball_angle);
       } else {
             move_angle_decrement = ((ball_distance < BALL_FOLLOW_DEPTH_AWAY ? BALL_FOLLOW_DEPTH_AWAY : ball_distance) - BALL_FOLLOW_DEPTH_AWAY) / float(BALL_FOLLOW_DEPTH_NEAR - BALL_FOLLOW_DEPTH_AWAY);
             tmp_move_angle = (ball_angle > 0 ? 90 : -90) + (ball_angle * move_angle_decrement);
@@ -257,12 +260,13 @@ void offence_move() {
             tmp_move_speed = move_speed;
       }
 
+      // ドリブラー制御
       if (Ball_catch.get() > 50) {
             if (Ball_catch.get() > 60) dribbler_timer.start();
             if (dribbler_timer.read() < 0.5) Dribbler.hold();
       }
 
-      if (dribbler_timer.read() > 0.25) {
+      if (dribbler_timer.read() > 0.3) {   // ボール補足時
             if (goal_angle_mode == 0 || goal_angle == 0) {
                   tmp_move_angle = 0;
             } else {
@@ -275,9 +279,9 @@ void offence_move() {
             } else {
                   dribbler_timer.start();
             }
-
-            if (dribbler_timer.read() > 0.5) {
+            if (dribbler_timer.read() > 0.6) {
                   Dribbler.kick();
+                  tmp_move_angle = 0;
             }
             if (dribbler_timer.read() > 0.7) {
                   tmp_move_speed = 0;
@@ -294,7 +298,7 @@ void offence_move() {
       Motor.run(tmp_move_angle, tmp_move_speed, robot_angle);   // 回り込み
 }
 
-void diffence_move() {
+void diffence_move() {   // ディフェンスモード
       int16_t tmp_move_speed, tmp_move_angle;
 
       tmp_move_speed = abs(ball_angle) * 3;
@@ -320,12 +324,13 @@ void diffence_move() {
       Motor.run(tmp_move_angle, tmp_move_speed);   // 回り込み
 }
 
-void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
+void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {   // ライン処理
       bool line_tf_x_unit[2], line_tf_y_unit[2];
       static int16_t tmp_move_angle, tmp_move_speed;
       static uint8_t line_tf_x, line_tf_y;
       static int16_t line_result_vector_x, line_result_vector_y, pre_line_result_vector_x, pre_line_result_vector_y, line_back_angle, line_wait;
 
+      // ドリブラー制御
       if (Line.check_front() && Ball_catch.get() > 50) {
             Dribbler.kick();
       } else if (Ball_catch.get() > 50) {
@@ -334,10 +339,11 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
             Dribbler.stop();
       }
 
+      // どこのラインを最初に踏んだか記憶
       if (Line.check_all()) {
             line_timer.start();
             line_timer.reset();
-            if (*line_tf == 0) Motor.brake(LINE_BRAKE_TIME);
+            if (*line_tf == 0) Motor.brake(LINE_BRAKE_TIME);   // ラインを踏んだ時のブレーキ
 
             if (Line.check_right() && line_tf_x <= 2) line_tf_x = 1;
             if (Line.check(4) && line_tf_x == 1) line_tf_x = 3;
@@ -363,7 +369,7 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
             if (line_tf_x_unit[1]) *line_tf = 4;
       }
 
-      if (*line_tf != 0) {
+      if (*line_tf != 0) {   // コートに戻る動作
             if (Line.check_all() == 1) {
                   line_result_vector_x = Line.check_right() + Line.check_left() * -1;
                   line_result_vector_y = Line.check_front() + Line.check_back() * -1;
@@ -394,7 +400,7 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) {
                   }
                   Motor.run(tmp_move_angle, line_move_speed);
 
-            } else {
+            } else {   // ライン待機動作
                   if (line_timer.read() > 0.1) {
                         line_tf_x = 0;
                         line_tf_y = 0;
