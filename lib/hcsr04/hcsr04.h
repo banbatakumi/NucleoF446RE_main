@@ -3,7 +3,7 @@
 
 #include "mbed.h"
 
-#define RC 0.75
+#define RC 0.9
 
 class HCSR04 {
      public:

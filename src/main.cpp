@@ -9,13 +9,13 @@
 
 #define PI 3.1415926535   // 円周率
 
-#define BALL_FOLLOW_RANGE 130   // 回り込み時にボールを追い始める角度(標準値:130)
+#define BALL_FOLLOW_RANGE 120   // 回り込み時にボールを追い始める角度(標準値:130)
 #define BALL_FOLLOW_DEPTH_AWAY 30.000   // ボールが遠い時の回り込みの深さ(標準値:30)
 #define BALL_FOLLOW_DEPTH_NEAR 85.000   // ボールが近い時の回り込みの深さ(標準値:85)
 
 #define LINE_BALL_P 2.5   // ライン待機時にボールを追う比例制御のゲイン
-#define LINE_BALL_WAIT_TIME 3   // ライン待機時にボールを追う時間
-#define LINE_BRAKE_TIME 50   // ラインを踏んだ時のブレーキ時間(μs)
+#define LINE_BALL_WAIT_TIME 2.5   // ライン待機時にボールを追う時間
+#define LINE_BRAKE_TIME 10   // ラインを踏んだ時のブレーキ時間(μs)
 
 #define SERIAL_BAUD 38400   // UART通信速度
 
@@ -235,10 +235,12 @@ void offence_move() {   // アタックモード
 
       // 方向
 
-      if (Ball_catch.get() > 50) {
+      if (Ball_catch.get() > 60) {
+            tmp_move_angle = 0;
+      } else if (Ball_catch.get() > 50) {
             tmp_move_angle = Ball_catch.get_right() - Ball_catch.get_left();
-      } else if (abs(ball_angle) <= BALL_FOLLOW_RANGE - ball_distance) {
-            tmp_move_angle = ball_angle + (90.000 / (BALL_FOLLOW_RANGE - ball_distance) * ball_angle);
+      } else if (abs(ball_angle) <= (BALL_FOLLOW_RANGE - ball_distance > 90 ? 90 : BALL_FOLLOW_RANGE - ball_distance)) {
+            tmp_move_angle = ball_angle + (90.00000 / (BALL_FOLLOW_RANGE - ball_distance) * ball_angle);
       } else {
             move_angle_decrement = ((ball_distance < BALL_FOLLOW_DEPTH_AWAY ? BALL_FOLLOW_DEPTH_AWAY : ball_distance) - BALL_FOLLOW_DEPTH_AWAY) / float(BALL_FOLLOW_DEPTH_NEAR - BALL_FOLLOW_DEPTH_AWAY);
             tmp_move_angle = (ball_angle > 0 ? 90 : -90) + (ball_angle * move_angle_decrement);
@@ -247,54 +249,55 @@ void offence_move() {   // アタックモード
       if (tmp_move_angle < -180) tmp_move_angle += 360;
 
       // 速度
-
-      if (Ball_catch.get() > 50) {
-            tmp_move_speed = move_speed;
-      } else if (abs(ball_angle) <= 90) {
-            tmp_move_speed = ((move_speed - 30) * (abs(ball_angle) / 90.000)) + 30 + (100 - ball_distance) * 1.5;
-      } else {
-            tmp_move_speed = move_speed;
-      }
       /*
-            if (abs(ball_angle) <= 90) {
+            if (Ball_catch.get() > 50) {
+                  tmp_move_speed = move_speed;
+            } else if (abs(ball_angle) <= 90) {
                   tmp_move_speed = ((move_speed - 30) * (abs(ball_angle) / 90.000)) + 30 + (100 - ball_distance) * 1.5;
             } else {
                   tmp_move_speed = move_speed;
             }
+      */
 
-            // ドリブラー制御
-            if (Ball_catch.get() > 50) {
-                  if (Ball_catch.get() > 60) dribbler_timer.start();
-                  if (dribbler_timer.read() < 0.5) Dribbler.hold();
+      if (abs(ball_angle) <= 90) {
+            tmp_move_speed = ((move_speed - 30) * (abs(ball_angle) / 90.000)) + 30 + (100 - ball_distance) * 1.5;
+      } else {
+            tmp_move_speed = move_speed;
+      }
+
+      // ドリブラー制御
+      if (Ball_catch.get() > 50) {
+            if (Ball_catch.get() > 60) dribbler_timer.start();
+            if (dribbler_timer.read() < 0.5) Dribbler.hold();
+      }
+
+      if (dribbler_timer.read() > 0.3) {   // ボール補足時
+            if (goal_angle_mode == 0 || goal_angle == 0) {
+                  tmp_move_angle = 0;
+            } else {
+                  tmp_move_angle += goal_angle / 1.5 > 40 ? (goal_angle > 0 ? 40 : -40) : goal_angle / 1.5;
             }
 
-            if (dribbler_timer.read() > 0.3) {   // ボール補足時
-                  if (goal_angle_mode == 0 || goal_angle == 0) {
-                        tmp_move_angle = 0;
-                  } else {
-                        tmp_move_angle += goal_angle / 1.5 > 40 ? (goal_angle > 0 ? 40 : -40) : goal_angle / 1.5;
-                  }
-
-                  tmp_move_speed = move_speed;
-                  if (abs(goal_angle) > 40) {
-                        dribbler_timer.stop();
-                  } else {
-                        dribbler_timer.start();
-                  }
-                  if (dribbler_timer.read() > 0.6) {
-                        Dribbler.kick();
-                        tmp_move_angle = 0;
-                  }
-                  if (dribbler_timer.read() > 0.7) {
-                        tmp_move_speed = 0;
-                  }
-            }
-
-            if (dribbler_timer.read() > 1.5 || abs(ball_angle) > 60) {
-                  dribbler_timer.reset();
+            tmp_move_speed = move_speed;
+            if (abs(goal_angle) > 40) {
                   dribbler_timer.stop();
-                  robot_angle = 0;
-            }*/
+            } else {
+                  dribbler_timer.start();
+            }
+            if (dribbler_timer.read() > 0.6) {
+                  Dribbler.kick();
+                  tmp_move_angle = 0;
+            }
+            if (dribbler_timer.read() > 0.7) {
+                  tmp_move_speed = 0;
+            }
+      }
+
+      if (dribbler_timer.read() > 1.5 || abs(ball_angle) > 60) {
+            dribbler_timer.reset();
+            dribbler_timer.stop();
+            robot_angle = 0;
+      }
 
       if (tmp_move_speed > move_speed) tmp_move_speed = move_speed;
       Motor.run(tmp_move_angle, tmp_move_speed, robot_angle);   // 回り込み
@@ -304,10 +307,12 @@ void diffence_move() {   // ディフェンスモード
       int16_t tmp_move_speed, tmp_move_angle, distance_p, back_distance;
 
       back_distance = 60;
-      tmp_move_speed = abs(ball_angle) * 3 + abs(back_distance - usensor.get_dist_cm());
+
+      //
+      tmp_move_speed = abs(ball_angle) * 3 + abs(back_distance - usensor.get_dist_cm()) * 3;
 
       distance_p = abs(back_distance - usensor.get_dist_cm());
-      if (distance_p > 45) distance_p = 45;
+      if (distance_p > 60) distance_p = 60;
 
       if (Line.check_right()) {
             tmp_move_angle = -90;
@@ -330,12 +335,14 @@ void diffence_move() {   // ディフェンスモード
                   }
             }
       }
+      //
+
       if (abs(ball_angle) < 30) {
             diffence_timer.start();
-            if (diffence_timer.read() > 4) {
+            if (diffence_timer.read() > 6) {
                   diffence_timer.stop();
                   diffence_timer.reset();
-            } else if (diffence_timer.read() > 3) {
+            } else if (diffence_timer.read() > 5) {
                   tmp_move_angle = Ball_catch.get_right() - Ball_catch.get_left();
                   tmp_move_speed = move_speed;
             }
@@ -367,7 +374,8 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) { 
       if (Line.check_all()) {
             line_timer.start();
             line_timer.reset();
-            if (*line_tf == 0) Motor.brake(LINE_BRAKE_TIME);   // ラインを踏んだ時のブレーキ
+            *line_tf = 0;
+            if (line_tf_x == 0 && line_tf_y == 0) Motor.brake(LINE_BRAKE_TIME);   // ラインを踏んだ時のブレーキ
 
             if (Line.check_right() && line_tf_x <= 2) line_tf_x = 1;
             if (Line.check(4) && line_tf_x == 1) line_tf_x = 3;
@@ -414,13 +422,10 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) { 
                         tmp_move_angle = line_back_angle < -90 || line_back_angle > 90 ? line_back_angle : line_back_angle - 180;
                   } else if (line_tf_y_unit[1]) {
                         tmp_move_angle = line_back_angle > -90 && line_back_angle < 90 ? line_back_angle : line_back_angle - 180;
-                        // tmp_move_angle += ball_angle > 0 ? 30 : -30;
                   } else if (line_tf_x_unit[0]) {
                         tmp_move_angle = line_back_angle > -180 && line_back_angle < 0 ? line_back_angle : line_back_angle - 180;
-                        // tmp_move_angle += abs(ball_angle) > 90 ? -30 : 30;
                   } else if (line_tf_x_unit[1]) {
                         tmp_move_angle = line_back_angle > 0 && line_back_angle < 180 ? line_back_angle : line_back_angle - 180;
-                        // tmp_move_angle += abs(ball_angle) > 90 ? 30 : -30;
                   }
                   Motor.run(tmp_move_angle, line_move_speed);
 
@@ -438,17 +443,21 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) { 
                               tmp_move_angle = ball_angle > 0 ? 70 : -70;
                               tmp_move_speed = abs(ball_angle) * LINE_BALL_P;
                         } else if (*line_tf == 2 && ball_angle > 15) {
-                              if (ball_distance > 75) {
+                              if (usensor.get_dist_cm() > 60) {
                                     tmp_move_angle = abs(ball_angle) < 45 ? 20 : 180;
                                     tmp_move_speed = abs(abs(ball_angle) - 45) * LINE_BALL_P;
                               } else {
-                                    tmp_move_angle = ball_angle - 45;
+                                    if (abs(ball_angle) < 90) {
+                                          tmp_move_angle = 45;
+                                    } else {
+                                          tmp_move_angle = 120;
+                                    }
                                     tmp_move_speed = move_speed;
                               }
                         } else if (*line_tf == 3 && abs(ball_angle) > 15) {
                               if (abs(ball_angle) > 120) {
                                     tmp_move_speed = 0;
-                              } else if (abs(ball_angle) > 60) {
+                              } else if (abs(ball_angle) > 90) {
                                     tmp_move_angle = ball_angle > 0 ? 120 : -120;
                                     tmp_move_speed = move_speed;
                               } else {
@@ -456,11 +465,15 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) { 
                                     tmp_move_speed = move_speed;
                               }
                         } else if (*line_tf == 4 && ball_angle < -15) {
-                              if (ball_distance > 75) {
+                              if (usensor.get_dist_cm() > 60) {
                                     tmp_move_angle = abs(ball_angle) < 45 ? -20 : 180;
                                     tmp_move_speed = abs(abs(ball_angle) - 45) * LINE_BALL_P;
                               } else {
-                                    tmp_move_angle = ball_angle + 45;
+                                    if (abs(ball_angle) < 90) {
+                                          tmp_move_angle = -45;
+                                    } else {
+                                          tmp_move_angle = -120;
+                                    }
                                     tmp_move_speed = move_speed;
                               }
                         } else {
