@@ -35,12 +35,21 @@ void motor::run(int16_t move_angle, int16_t move_speed, int8_t robot_angle) {
             pre_p = p;
             d_timer.reset();
       }
-      pd = p * KP + d * KD;
+      
+      if(robot_angle == 0){
+            pd = p * KP + d * KD;
+      } else {
+            pd = p * KP * 2 + d * KD;
+      }
       if (abs(pd) > PD_LIMIT) pd = PD_LIMIT * (abs(pd) / pd);
 
       if (moving_average_count == MOVING_AVERAGE_COUNT_NUMBER) moving_average_count = 0;
       for (uint8_t count = 0; count < MOTOR_NUM; count++) {
-            power[count] += count < 2 ? -pd : pd;
+            if (robot_angle == 0) {
+                  power[count] += count < 2 ? -pd : pd;
+            } else {
+                  power[count] += count < 2 && (count == 1 || count == 2) ? -pd : pd;
+            }
             if (abs(power[count]) > POWER_LIMIT) power[count] = POWER_LIMIT * (abs(power[count]) / power[count]);   // モーターの上限値超えた場合の修正
 
             tmp_power[count][moving_average_count] = power[count];
