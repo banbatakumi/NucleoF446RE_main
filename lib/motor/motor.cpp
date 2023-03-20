@@ -31,24 +31,22 @@ void motor::run(int16_t move_angle, int16_t move_speed, int8_t robot_angle) {
       // PD姿勢制御
       p = robot_angle - yaw;   // 比例
       if (d_timer.read() > D_PERIODO) {
+            i += p * d_timer.read();
             d = p - pre_p;   // 微分
             pre_p = p;
             d_timer.reset();
       }
-      
-      if(robot_angle == 0){
-            pd = p * KP + d * KD;
-      } else {
-            pd = p * KP * 2 + d * KD;
-      }
-      if (abs(pd) > PD_LIMIT) pd = PD_LIMIT * (abs(pd) / pd);
+
+      pid = p * KP + i * KI + d * KD;
+
+      if (abs(pid) > PD_LIMIT) pid = PD_LIMIT * (abs(pid) / pid);
 
       if (moving_average_count == MOVING_AVERAGE_COUNT_NUMBER) moving_average_count = 0;
       for (uint8_t count = 0; count < MOTOR_NUM; count++) {
             if (robot_angle == 0) {
-                  power[count] += count < 2 ? -pd : pd;
-            } else {
-                  power[count] += count < 2 && (count == 1 || count == 2) ? -pd : pd;
+                  power[count] += count < 2 ? -pid : pid;
+            } else if (count == 1 || count == 2) {
+                  power[count] += count < 2 ? -pid * 2 : pid * 2;
             }
             if (abs(power[count]) > POWER_LIMIT) power[count] = POWER_LIMIT * (abs(power[count]) / power[count]);   // モーターの上限値超えた場合の修正
 

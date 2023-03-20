@@ -24,8 +24,14 @@ void HCSR04::isr_fall(void) {
       pulsetime.stop();
       pulsedur = pulsetime.read_us();
       distance = (pulsedur * 343) / 20000;
-      distance = distance * (1 - RC) + pre_distance * RC;
-      pre_distance = distance;
+
+      if (distance_moving_average_count == DISTANCE_MOVING_AVERAGE_COUNT_NUMBER) distance_moving_average_count = 0;
+      tmp_distance[distance_moving_average_count] = distance;
+      distance = 0;
+      for (uint8_t count = 0; count < DISTANCE_MOVING_AVERAGE_COUNT_NUMBER; count++) distance += tmp_distance[count];
+      distance /= DISTANCE_MOVING_AVERAGE_COUNT_NUMBER;
+      distance_moving_average_count++;
+
       pulsetime.reset();
 }
 

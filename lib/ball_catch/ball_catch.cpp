@@ -12,15 +12,16 @@ void ball_catch::read() {
             value[1] += right;
       }
 
+      if (moving_average_count == MOVING_AVERAGE_COUNT_NUMBER) moving_average_count = 0;
       for (uint8_t count = 0; count < IR_NUM; count++) {
-            for (uint8_t i = SAMPLE_NUMBER - 1; i > 0; i--) sample_value[i][count] = sample_value[i - 1][count];
-            sample_value[0][count] = value[count];
+            value[count] = (READ_NUMBER_OF_TIME - value[count]) * (100.00000 / READ_NUMBER_OF_TIME);
+
+            tmp_value[count][moving_average_count] = value[count];
             value[count] = 0;
-            for (uint8_t i = 0; i < SAMPLE_NUMBER; i++) value[count] += sample_value[i][count];
-            value[count] = value[count] * (1 - RC) + pre_value[count] * RC;
-            pre_value[count] = value[count];
-            value[count] = (READ_NUMBER_OF_TIME * SAMPLE_NUMBER - value[count]) * (100.000 / (READ_NUMBER_OF_TIME * SAMPLE_NUMBER));
+            for (uint8_t count_1 = 0; count_1 < MOVING_AVERAGE_COUNT_NUMBER; count_1++) value[count] += tmp_value[count][count_1];
+            value[count] /= MOVING_AVERAGE_COUNT_NUMBER;
       }
+      moving_average_count++;
 }
 
 uint8_t ball_catch::get_left() {

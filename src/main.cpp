@@ -10,12 +10,12 @@
 #define PI 3.1415926535   // 円周率
 
 #define BALL_FOLLOW_RANGE 125   // 回り込み時にボールを追い始める角度(標準値:130)
-#define BALL_FOLLOW_DEPTH_AWAY 30.000   // ボールが遠い時の回り込みの深さ(標準値:30)
-#define BALL_FOLLOW_DEPTH_NEAR 85.000   // ボールが近い時の回り込みの深さ(標準値:85)
+#define BALL_FOLLOW_DEPTH_AWAY 0.000   // ボールが遠い時の回り込みの深さ(標準値:30)
+#define BALL_FOLLOW_DEPTH_NEAR 90.000   // ボールが近い時の回り込みの深さ(標準値:90)
 
 #define LINE_BALL_P 2.5   // ライン待機時にボールを追う比例制御のゲイン
-#define LINE_BALL_WAIT_TIME 5   // ライン待機時にボールを追う時間
-#define LINE_BRAKE_TIME 25   // ラインを踏んだ時のブレーキ時間(μs)
+#define LINE_BALL_WAIT_TIME 3   // ライン待機時にボールを追う時間
+#define LINE_BRAKE_TIME 15   // ラインを踏んだ時のブレーキ時間(μs)
 
 #define IMU_SERIAL_BAUD 38400   // UART通信速度
 #define IR_SERIAL_BAUD 38400   // UART通信速度
@@ -98,7 +98,7 @@ int main() {
             } else if (mode == 2) {
                   diffence_move();
             } else if (mode == 3) {
-                  Motor.run(0, 0);
+                  Motor.run(0, 0, 0);
             } else if (mode == 4) {
                   line_move(&line_tf, line_move_speed, move_speed);
 
@@ -183,6 +183,7 @@ void ui() {   // ui用のマイコンとの通信
                   if (arduino_ui.getc() == 1) Line.set();
 
                   arduino_ui.putc('a');
+                  arduino_ui.putc(Line.check_all());
                   arduino_ui.putc(Line.check(0));
                   arduino_ui.putc(Line.check(1));
                   arduino_ui.putc(Line.check(2));
@@ -238,9 +239,7 @@ void offence_move() {   // アタックモード
 
       // 方向
 
-      if (Ball_catch.get() > 55) {
-            tmp_move_angle = (Ball_catch.get_right() - Ball_catch.get_left()) / 2;
-      } else if (abs(ball_angle) <= (BALL_FOLLOW_RANGE - ball_distance > 90 ? 90 : BALL_FOLLOW_RANGE - ball_distance)) {
+      if (abs(ball_angle) <= (BALL_FOLLOW_RANGE - ball_distance > 90 ? 90 : BALL_FOLLOW_RANGE - ball_distance)) {
             tmp_move_angle = ball_angle + (90.00000 / (BALL_FOLLOW_RANGE - ball_distance) * ball_angle);
       } else {
             move_angle_decrement = ((ball_distance < BALL_FOLLOW_DEPTH_AWAY ? BALL_FOLLOW_DEPTH_AWAY : ball_distance) - BALL_FOLLOW_DEPTH_AWAY) / float(BALL_FOLLOW_DEPTH_NEAR - BALL_FOLLOW_DEPTH_AWAY);
@@ -250,34 +249,24 @@ void offence_move() {   // アタックモード
       if (tmp_move_angle < -180) tmp_move_angle += 360;
 
       // 速度
-      /*
-            if (Ball_catch.get() > 50) {
-                  tmp_move_speed = move_speed;
-            } else if (abs(ball_angle) <= 90) {
-                  tmp_move_speed = ((move_speed - 30) * (abs(ball_angle) / 90.000)) + 30 + (100 - ball_distance) * 1.5;
-            } else {
-                  tmp_move_speed = move_speed;
-            }
-      */
-
-      if (Ball_catch.get() > 55) {
-            tmp_move_speed = move_speed;
+      if (Ball_catch.get() > 50) {
+            tmp_move_speed = 50;
       } else if (abs(ball_angle) <= 90) {
-            tmp_move_speed = ((move_speed - 30) * (abs(ball_angle) / 90.000)) + 30 + (100 - ball_distance) * 2;
+            tmp_move_speed = ((move_speed - 50) * (abs(ball_angle) / 90.000)) + 50 + (100 - ball_distance) * 1.5;
       } else {
             tmp_move_speed = move_speed;
       }
+      tmp_move_speed = move_speed;
 
       // ドリブラー制御
       if (Ball_catch.get() > 50) {
             if (Ball_catch.get() > 60) dribbler_timer.start();
             if (dribbler_timer.read() < 0.4) Dribbler.hold();
       }
-      if (dribbler_timer.read() > 0.05 && goal_angle_mode != 0 && goal_angle != 0) robot_angle = goal_angle / 1.5 + yaw;
+      if (goal_angle_mode != 0 && goal_angle != 0 && Ball_catch.get() > 50)robot_angle = goal_angle / 1.5 + yaw;
       if (dribbler_timer.read() > 0.1) {   // ボール補足時
             tmp_move_angle = 0;
-
-            tmp_move_speed = move_speed;
+            
             if (abs(goal_angle) > 70) {
                   dribbler_timer.stop();
             } else {
@@ -285,8 +274,10 @@ void offence_move() {   // アタックモード
             }
             if (dribbler_timer.read() > 0.5) {
                   Dribbler.kick();
+                  tmp_move_speed = 90;
             } else if (dribbler_timer.read() > 0.4) {
                   Dribbler.stop();
+                  tmp_move_speed = 90;
             }
       }
 
@@ -296,7 +287,7 @@ void offence_move() {   // アタックモード
             robot_angle = 0;
       }
 
-      if (tmp_move_speed > move_speed) tmp_move_speed = move_speed;
+      //if (tmp_move_speed > move_speed) tmp_move_speed = move_speed;
       Motor.run(tmp_move_angle, tmp_move_speed, robot_angle);   // 回り込み
 }
 

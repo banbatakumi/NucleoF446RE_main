@@ -3,8 +3,7 @@
 
 #include "mbed.h"
 
-#define RC 0.9
-
+#define DISTANCE_MOVING_AVERAGE_COUNT_NUMBER 25
 class HCSR04 {
      public:
       HCSR04(PinName TrigPin, PinName EchoPin);
@@ -24,8 +23,10 @@ class HCSR04 {
       Timer pulsetime;
       DigitalOut trigger;
       InterruptIn echo;
+
+      uint16_t distance_moving_average_count, tmp_distance[DISTANCE_MOVING_AVERAGE_COUNT_NUMBER];
       uint16_t pulsedur;
-      uint16_t distance, pre_distance;
+      uint16_t distance;
 };
 
 #endif
