@@ -14,11 +14,11 @@ class line {
       void led(bool intensity);
       void read();
       void set();
-      bool check_all();
-      bool check_front();
-      bool check_right();
-      bool check_back();
-      bool check_left();
+      bool all();
+      bool front();
+      bool right();
+      bool back();
+      bool left();
       bool check(uint8_t line_number);
       uint16_t get_value(uint8_t line_number);
 
@@ -38,7 +38,7 @@ class line {
       AnalogIn left_2;
       AnalogIn left_3;
 
-      bool check_tf[LINE_NUM];
+      bool tf[LINE_NUM];
       uint16_t value[LINE_NUM];
       uint16_t tmp_value[LINE_NUM][MOVING_AVERAGE_COUNT_NUMBER];
       uint8_t moving_average_count;

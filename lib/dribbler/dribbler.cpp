@@ -20,12 +20,12 @@ void dribbler::test() {
 }
 
 void dribbler::hold(uint8_t speed) {
-      pin_1 = speed;
+      pin_1 = speed / 100.000;
       pin_2 = 0;
 }
 void dribbler::kick(uint8_t speed) {
       pin_1 = 0;
-      pin_2 = speed;
+      pin_2 = speed / 100.000;
 }
 void dribbler::stop() {
       pin_1 = 0;

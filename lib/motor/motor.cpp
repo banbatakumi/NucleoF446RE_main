@@ -15,7 +15,7 @@ motor::motor(PinName motor_1_1_, PinName motor_1_2_, PinName motor_2_1_, PinName
       d_timer.start();
 }
 
-void motor::run(int16_t move_angle, int16_t move_speed, int8_t robot_angle) {
+void motor::run(int16_t move_angle, int16_t move_speed, int16_t robot_angle) {
       angle = move_angle;
       speed = move_speed;
       if (move_speed > POWER_LIMIT) move_speed = POWER_LIMIT;   // 速度が上限を超えていないか
@@ -30,6 +30,8 @@ void motor::run(int16_t move_angle, int16_t move_speed, int8_t robot_angle) {
 
       // PD姿勢制御
       p = robot_angle - yaw;   // 比例
+      if (p > 180) p -= 360;
+      if (p < -180) p += 360;
       if (d_timer.read() > D_PERIODO) {
             i += p * d_timer.read();
             d = p - pre_p;   // 微分

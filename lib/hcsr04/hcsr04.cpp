@@ -15,6 +15,8 @@ void HCSR04::isr_rise(void) {
       pulsetime.start();
 }
 void HCSR04::start(void) {
+      trigger = 0;
+      wait_us(2);
       trigger = 1;
       wait_us(10);
       trigger = 0;
@@ -42,7 +44,7 @@ void HCSR04::fall(void (*fptr)(void)) {
       echo.fall(fptr);
 }
 
-uint16_t HCSR04::get_dist_cm() {
+uint16_t HCSR04::get() {
       return distance;
 }
 uint16_t HCSR04::get_pulse_us() {

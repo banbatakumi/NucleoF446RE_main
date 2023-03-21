@@ -18,7 +18,7 @@
 class motor {
      public:
       motor(PinName motor_1_1_, PinName motor_1_2_, PinName motor_2_1_, PinName motor_2_2_, PinName motor_3_1_, PinName motor_3_2_, PinName motor_4_1_, PinName motor_4_2_);
-      void run(int16_t move_angle, int16_t move_speed, int8_t robot_angle = 0);
+      void run(int16_t move_angle, int16_t move_speed, int16_t robot_angle = 0);
       void set_pwm();
       void brake(uint16_t brake_time = 0);
       void free();

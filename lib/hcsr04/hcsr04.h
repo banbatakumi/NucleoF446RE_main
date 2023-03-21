@@ -3,13 +3,13 @@
 
 #include "mbed.h"
 
-#define DISTANCE_MOVING_AVERAGE_COUNT_NUMBER 25
+#define DISTANCE_MOVING_AVERAGE_COUNT_NUMBER 50
 class HCSR04 {
      public:
       HCSR04(PinName TrigPin, PinName EchoPin);
       ~HCSR04();
 
-      uint16_t get_dist_cm(void);
+      uint16_t get(void);
 
       uint16_t get_pulse_us(void);
 
