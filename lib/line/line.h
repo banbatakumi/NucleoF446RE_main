@@ -4,7 +4,7 @@
 #include "mbed.h"
 
 #define REACTION_AVERAGE_NUMBER_OF_TIMES 10000
-#define MOVING_AVERAGE_COUNT_NUMBER 15
+#define MOVING_AVERAGE_COUNT_NUMBER 10
 #define LINE_NUM 11
 
 class line {

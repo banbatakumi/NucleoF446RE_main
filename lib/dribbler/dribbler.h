@@ -8,7 +8,7 @@ class dribbler {
       dribbler(PinName pin_1_, PinName pin_2_);
       void test();
       void kick(uint8_t speed = 100);
-      void hold(uint8_t speed = 100);
+      void hold(uint8_t speed = 75);
       void stop();
 
      private:
