@@ -9,11 +9,11 @@
 
 #define PI 3.1415926535   // 円周率
 
-#define BALL_FOLLOW_RANGE 150   // 回り込み時にボールを追い始める角度(標準値:130)
-#define BALL_FOLLOW_DEPTH_AWAY -10.000   // ボールが遠い時の回り込みの深さ(標準値:30)
-#define BALL_FOLLOW_DEPTH_NEAR 90.000   // ボールが近い時の回り込みの深さ(標準値:90)
-#define BALL_FOLLOW_P 1.000
-#define BALL_FOLLOW_D 150.000
+#define BALL_FOLLOW_RANGE 140   // 回り込み時にボールを追い始める角度(標準値:130)
+#define BALL_FOLLOW_DEPTH_AWAY -30.000   // ボールが遠い時の回り込みの深さ(標準値:30)
+#define BALL_FOLLOW_DEPTH_NEAR 80.000   // ボールが近い時の回り込みの深さ(標準値:90)
+#define BALL_CATCH_P 1.5
+#define BALL_FOLLOW_D 20.000
 #define D_PERIODO 0.01
 
 #define LINE_BALL_P 1.5   // ライン待機時にボールを追う比例制御のゲイン
@@ -107,7 +107,7 @@ int main() {
             } else if (mode == 2) {
                   diffence_move();
             } else if (mode == 3) {
-                  Motor.run(0, 0, 0);
+                              Motor.run(goal_angle == 0 ? 180 : goal_angle * 1.5, move_speed);
             } else if (mode == 4) {
                   line_move(&line_tf, line_move_speed, move_speed);
 
@@ -250,13 +250,16 @@ void offence_move() {   // アタックモード
 
       // 方向
 
+      move_angle_decrement = ((ball_distance < BALL_FOLLOW_DEPTH_AWAY ? BALL_FOLLOW_DEPTH_AWAY : ball_distance) - BALL_FOLLOW_DEPTH_AWAY) / float(BALL_FOLLOW_DEPTH_NEAR - BALL_FOLLOW_DEPTH_AWAY);
       if (abs(ball_angle) <= (BALL_FOLLOW_RANGE - ball_distance > 90 ? 90 : BALL_FOLLOW_RANGE - ball_distance)) {
-            tmp_move_angle = ball_angle + (90.00000 / (BALL_FOLLOW_RANGE - ball_distance) * ball_angle);
+            tmp_move_angle = (90.00000 / (BALL_FOLLOW_RANGE - ball_distance) * ball_angle);
       } else {
-            move_angle_decrement = ((ball_distance < BALL_FOLLOW_DEPTH_AWAY ? BALL_FOLLOW_DEPTH_AWAY : ball_distance) - BALL_FOLLOW_DEPTH_AWAY) / float(BALL_FOLLOW_DEPTH_NEAR - BALL_FOLLOW_DEPTH_AWAY);
-            tmp_move_angle = (ball_angle > 0 ? 90 : -90) + (ball_angle * move_angle_decrement);
+            tmp_move_angle = (ball_angle > 0 ? 90 : -90);
       }
-      if (abs(ball_angle) < 90) tmp_move_angle += (Ball_catch.get_right() - Ball_catch.get_left()) * (ball_distance / 100.000) * ((90 - abs(ball_angle)) / 90.000);
+
+      tmp_move_angle += (ball_angle * move_angle_decrement);
+
+      if (abs(ball_angle) < 90) tmp_move_angle += (Ball_catch.get_right() - Ball_catch.get_left()) * BALL_CATCH_P * (ball_distance / 90.000) * ((90 - abs(ball_angle)) / 90.000);
 
       if (tmp_move_angle > 180) tmp_move_angle -= 360;
       if (tmp_move_angle < -180) tmp_move_angle += 360;
@@ -264,10 +267,9 @@ void offence_move() {   // アタックモード
       // 速度
       if (Ball_catch.get() > 55) {
             tmp_move_speed = catch_move_speed;
-      } else if (abs(ball_angle) <= 90) {
+      } else if (abs(ball_angle) <= 100) {
             ball_follow_pd_timer.start();
-            p = 0 - (((move_speed - 30) * (abs(ball_angle) / 90.000)) + 30 + (100 - ball_distance));   //(abs(ball_angle) + 25 + (100 - ball_distance));
-            //((move_speed - 10) * (abs(ball_angle) / 90.000)) + 10 + (100 - ball_distance);
+            p = 0 - (((move_speed - 25) * (abs(ball_angle) / 100.000)) + 25 + (100 - ball_distance));
             d = p - pre_p;
             pre_p = p;
             if (ball_follow_pd_timer.read() > D_PERIODO) {
@@ -275,7 +277,7 @@ void offence_move() {   // アタックモード
                   pre_p = p;
                   ball_follow_pd_timer.reset();
             }
-            tmp_move_speed = abs(p * BALL_FOLLOW_P + d * BALL_FOLLOW_D);
+            tmp_move_speed = abs(p + d * BALL_FOLLOW_D);
       } else {
             ball_follow_pd_timer.stop();
             tmp_move_speed = move_speed;
@@ -284,22 +286,27 @@ void offence_move() {   // アタックモード
       // ドリブラー制御
       if (Ball_catch.get() > 50) {
             if (Ball_catch.get() > 60) dribbler_timer.start();
-            if (dribbler_timer.read() < 0.4) Dribbler.hold();
+            if (dribbler_timer.read() < 0.2) Dribbler.hold();
       }
       if (goal_angle_mode != 0 && goal_angle != 0 && Ball_catch.get() > 50) robot_angle = goal_angle / 1.25 + yaw;
-      if (dribbler_timer.read() > 0.2) {   // ボール補足時
+      if (dribbler_timer.read() > 0.1) {   // ボール補足時
             tmp_move_speed = catch_move_speed;
-            if (dribbler_timer.read() > 0.5 && (goal_angle_mode == 0 || goal_angle == 0 || goal_height > 15)) {
+            if (goal_angle_mode != 0 && goal_angle != 0 && (abs(goal_angle) > 25 || goal_height < 10)) {
+                  dribbler_timer.stop();
+            } else {
+                  dribbler_timer.start();
+            }
+            if (dribbler_timer.read() > 0.3) {
                   Dribbler.kick();
                   tmp_move_angle = 0;
-            } else if (dribbler_timer.read() > 0.4) {
+            } else if (dribbler_timer.read() > 0.2) {
                   Dribbler.stop();
                   tmp_move_angle = 0;
             }
-            if (abs(goal_angle / 1.25 + yaw) > 50) tmp_move_angle += goal_angle / 1.25 + yaw > 0 ? 30 : -30;
+            if (abs(goal_angle / 1.25 + yaw) > 50) tmp_move_angle += goal_angle / 1.25 + yaw > 0 ? 45 : -45;
       }
 
-      if (dribbler_timer.read() > 2 || abs(ball_angle) > 45) {
+      if (dribbler_timer.read() > 2 || abs(ball_angle) > 30) {
             dribbler_timer.reset();
             dribbler_timer.stop();
             robot_angle = 0;
@@ -314,7 +321,6 @@ void diffence_move() {   // ディフェンスモード
 
       back_distance = 60;
 
-      //
       tmp_move_speed = abs(ball_angle) * 3 + abs(back_distance - usensor.get()) * 3;
 
       distance_p = abs(back_distance - usensor.get());

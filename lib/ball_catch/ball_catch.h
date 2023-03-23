@@ -4,7 +4,7 @@
 #include "mbed.h"
 
 #define READ_NUMBER_OF_TIME 500   // ボールセンサを読む回数
-#define MOVING_AVERAGE_COUNT_NUMBER 50   // 移動平均フィルタの回数
+#define MOVING_AVERAGE_COUNT_NUMBER 75   // 移動平均フィルタの回数
 #define IR_NUM 2
 class ball_catch {
      public:
