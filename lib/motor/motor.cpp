@@ -15,7 +15,7 @@ motor::motor(PinName motor_1_1_, PinName motor_1_2_, PinName motor_2_1_, PinName
       d_timer.start();
 }
 
-void motor::run(int16_t move_angle, int16_t move_speed, int16_t robot_angle) {
+void motor::run(int16_t move_angle, int16_t move_speed, int16_t robot_angle, bool shoot_robot_angle) {
       angle = move_angle;
       speed = move_speed;
       if (move_speed > POWER_LIMIT) move_speed = POWER_LIMIT;   // 速度が上限を超えていないか
@@ -45,7 +45,7 @@ void motor::run(int16_t move_angle, int16_t move_speed, int16_t robot_angle) {
 
       if (moving_average_count == MOVING_AVERAGE_COUNT_NUMBER) moving_average_count = 0;
       for (uint8_t count = 0; count < MOTOR_NUM; count++) {
-            if (robot_angle == 0) {
+            if (robot_angle == 0 || shoot_robot_angle != 0) {
                   power[count] += count < 2 ? -pid : pid;
             } else if (count == 1 || count == 2) {
                   power[count] += count < 2 ? -pid * 2 : pid * 2;

@@ -7,18 +7,18 @@
 
 #define MOTOR_FREQUENCY 60000   // モーターのPWM周波数
 #define MIN_BRAKE 5   // モーターの最小値ブレーキ
-#define POWER_LIMIT 100   // モーターの最大パワー
-#define KP 1.000   // 姿勢制御比例ゲイン
+#define POWER_LIMIT 95   // モーターの最大パワー
+#define KP 1.250   // 姿勢制御比例ゲイン
 #define KI 0.000   //    姿制御積分ゲイン
-#define KD 5.000   // 姿制御微分ゲイン
-#define PD_LIMIT 100   // 姿勢制御の最大パワー
+#define KD 7.500   // 姿制御微分ゲイン
+#define PD_LIMIT 95   // 姿勢制御の最大パワー
 #define MOVING_AVERAGE_COUNT_NUMBER 20   // 移動平均フィルタの回数
 #define D_PERIODO 0.01
 #define MOTOR_NUM 4
 class motor {
      public:
       motor(PinName motor_1_1_, PinName motor_1_2_, PinName motor_2_1_, PinName motor_2_2_, PinName motor_3_1_, PinName motor_3_2_, PinName motor_4_1_, PinName motor_4_2_);
-      void run(int16_t move_angle, int16_t move_speed, int16_t robot_angle = 0);
+      void run(int16_t move_angle, int16_t move_speed, int16_t robot_angle = 0, bool shoot_robot_angle = 0);
       void set_pwm();
       void brake(uint16_t brake_time = 0);
       void free();
