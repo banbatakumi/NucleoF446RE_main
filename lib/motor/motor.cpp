@@ -38,10 +38,7 @@ void motor::run(int16_t move_angle, int16_t move_speed, int16_t robot_angle, boo
             pre_p = p;
             d_timer.reset();
       }
-
       pid = p * KP + i * KI + d * KD;
-
-      if (abs(pid) > PD_LIMIT) pid = PD_LIMIT * (abs(pid) / pid);
 
       if (moving_average_count == MOVING_AVERAGE_COUNT_NUMBER) moving_average_count = 0;
       for (uint8_t count = 0; count < MOTOR_NUM; count++) {

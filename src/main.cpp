@@ -10,10 +10,10 @@
 #define PI 3.1415926535   // 円周率
 
 #define BALL_FOLLOW_RANGE 140   // 回り込み時にボールを追い始める角度(標準値:130)
-#define BALL_FOLLOW_DEPTH_AWAY -35.000   // ボールが遠い時の回り込みの深さ(標準値:30)
+#define BALL_FOLLOW_DEPTH_AWAY -75.000   // ボールが遠い時の回り込みの深さ(標準値:30)
 #define BALL_FOLLOW_DEPTH_NEAR 85.000   // ボールが近い時の回り込みの深さ(標準値:90)
-#define BALL_CATCH_P 1.5
-#define BALL_FOLLOW_D 20.000
+#define BALL_CATCH_P 0.2
+#define BALL_FOLLOW_D 50.000
 #define D_PERIODO 0.01
 
 #define LINE_BALL_P 2.5   // ライン待機時にボールを追う比例制御のゲイン
@@ -22,8 +22,8 @@
 #define LINE_BRAKE_TIME 10   // ラインを踏んだ時のブレーキ時間(μs)
 #define LINE_WAIT_BRAKE_TIME 0.05   // ラインを踏んだ後のブレーキ時間(s)
 
-#define IMU_SERIAL_BAUD 38400   // UART通信速度
-#define IR_SERIAL_BAUD 38400   // UART通信速度
+#define IMU_SERIAL_BAUD 115200   // UART通信速度
+#define IR_SERIAL_BAUD 115200   // UART通信速度
 #define UI_SERIAL_BAUD 19200   // UART通信速度
 
 #define CAM_CENTER 105   // カメラのセンター合わせ
@@ -105,7 +105,7 @@ int main() {
             } else if (mode == 2) {
                   diffence_move();
             } else if (mode == 3) {
-                  Motor.run(0, 0, 45, 1);
+                  Motor.run(0, 0);
                   // Motor.run(0, 0, (goal_angle / 1.25 + yaw));
             } else if (mode == 4) {
                   line_move(&line_tf, line_move_speed, move_speed);
@@ -114,7 +114,7 @@ int main() {
                         if (ball_distance == 0) {
                               Motor.run(0, 0);
                         } else {
-                              Motor.run(ball_angle, move_speed);
+                              Motor.run((ball_angle + (abs(ball_angle) > 90 ? 90 * (abs(ball_angle) / ball_angle) : ball_angle)) * (ball_distance / 75.000), move_speed);
                         }
                   }
             }
@@ -244,13 +244,14 @@ void ui() {   // ui用のマイコンとの通信
             }
       }
 }
+
 void offence_move() {   // アタックモード
       int16_t tmp_move_speed, tmp_move_angle, robot_angle = 0;
+
       int16_t pre_p, p, d;
       float move_angle_decrement;
 
       // 方向
-
       move_angle_decrement = ((ball_distance < BALL_FOLLOW_DEPTH_AWAY ? BALL_FOLLOW_DEPTH_AWAY : ball_distance) - BALL_FOLLOW_DEPTH_AWAY) / float(BALL_FOLLOW_DEPTH_NEAR - BALL_FOLLOW_DEPTH_AWAY);
       if (abs(ball_angle) <= (BALL_FOLLOW_RANGE - ball_distance > 90 ? 90 : BALL_FOLLOW_RANGE - ball_distance)) {
             tmp_move_angle = (90.00000 / (BALL_FOLLOW_RANGE - ball_distance) * ball_angle);
@@ -268,11 +269,10 @@ void offence_move() {   // アタックモード
       // 速度
       if (Ball_catch.get() > 50) {
             tmp_move_speed = catch_move_speed;
+            tmp_move_angle = 0;
       } else if (abs(ball_angle) <= 100) {
             ball_follow_pd_timer.start();
-            p = 0 - (((move_speed - 40) * (abs(ball_angle) / 90.000)) + 40 + (BALL_FOLLOW_DEPTH_NEAR - ball_distance));
-            d = p - pre_p;
-            pre_p = p;
+            p = (0 - ball_angle) * (ball_distance / 100.000);
             if (ball_follow_pd_timer.read() > D_PERIODO) {
                   d = p - pre_p;   // 微分
                   pre_p = p;
@@ -283,38 +283,39 @@ void offence_move() {   // アタックモード
             ball_follow_pd_timer.stop();
             tmp_move_speed = move_speed;
       }
+      /*
+            // ドリブラー制御
+            if (Ball_catch.get() > 50) {
+                  if (Ball_catch.get() > 60) dribbler_timer.start();
+                  if (dribbler_timer.read() < 0.2) Dribbler.hold();
+            }
 
-      // ドリブラー制御
-      if (Ball_catch.get() > 50) {
-            if (Ball_catch.get() > 60) dribbler_timer.start();
-            if (dribbler_timer.read() < 0.2) Dribbler.hold();
-      }
+            if (goal_angle_mode != 0 && abs(ball_angle) < 90 && Ball_catch.get() > 50 && goal_height > 10) robot_angle = goal_angle / 1.25 + yaw;
+            if (dribbler_timer.read() > 0.1) {   // ボール補足時
+                  tmp_move_speed = catch_move_speed;
+                  if (goal_angle_mode != 0 && goal_angle != 0 && (abs(goal_angle) > 25 || goal_height < 15)) {
+                        dribbler_timer.stop();
+                        } else {
+                              dribbler_timer.start();
+                        }
+                  if (dribbler_timer.read() > 0.3) {
+                        Dribbler.kick();
+                        tmp_move_angle = 0;
+                  } else if (dribbler_timer.read() > 0.2) {
+                        Dribbler.stop();
+                        tmp_move_angle = 0;
+                  }
+                  if (abs(goal_angle / 1.25 + yaw) > 50) tmp_move_angle += goal_angle / 1.25 + yaw > 0 ? 30 : -30;
+            }
 
-      if (goal_angle_mode != 0 && abs(ball_angle) < 90 && Ball_catch.get() > 50 && goal_height > 10) robot_angle = goal_angle / 1.25 + yaw;
-      if (dribbler_timer.read() > 0.1) {   // ボール補足時
-            tmp_move_speed = catch_move_speed;
-            if (goal_angle_mode != 0 && goal_angle != 0 && (abs(goal_angle) > 25 || goal_height < 15)) {
+            if (dribbler_timer.read() > 2 || abs(ball_angle) > 30) {
+                  dribbler_timer.reset();
                   dribbler_timer.stop();
-            } else {
-                  dribbler_timer.start();
-            }
-            if (dribbler_timer.read() > 0.3) {
-                  Dribbler.kick();
-                  tmp_move_angle = 0;
-            } else if (dribbler_timer.read() > 0.2) {
-                  Dribbler.stop();
-                  tmp_move_angle = 0;
-            }
-            if (abs(goal_angle / 1.25 + yaw) > 50) tmp_move_angle += goal_angle / 1.25 + yaw > 0 ? 30 : -30;
-      }
-
-      if (dribbler_timer.read() > 2 || abs(ball_angle) > 30) {
-            dribbler_timer.reset();
-            dribbler_timer.stop();
-            robot_angle = 0;
-      }
-
+                  robot_angle = 0;
+            }*/
+      tmp_move_speed = catch_move_speed;
       if (tmp_move_speed > catch_move_speed) tmp_move_speed = move_speed;
+
       Motor.run(tmp_move_angle, tmp_move_speed, robot_angle);   // 回り込み
 }
 
@@ -514,32 +515,21 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) { 
                               }*/
                         } else if (*line_tf == 2 && ball_angle > 0) {
                               wait = 1;
-                              if (usensor.get() < 60) {
-                                    wait_angle = ball_distance > 80 ? 90 : 120;
-                                    tmp_move_speed = abs(abs(ball_angle) - wait_angle) * LINE_BALL_P + (BALL_FOLLOW_DEPTH_NEAR - ball_distance) * LINE_DISTANCE_P;
-                                    if (Line.check(2)) {
-                                          tmp_move_angle = abs(ball_angle) > wait_angle ? -150 : -30;
-                                    } else if (Line.check(3)) {
-                                          tmp_move_angle = abs(ball_angle) > wait_angle ? -135 : -45;
-                                    } else {
-                                          tmp_move_angle = abs(ball_angle) > wait_angle ? 150 : 30;
-                                    }
+                              tmp_move_speed = abs(abs(ball_angle) - 45) * LINE_BALL_P + (BALL_FOLLOW_DEPTH_NEAR - ball_distance) * LINE_DISTANCE_P;
+                              if (Line.check(2)) {
+                                    tmp_move_angle = abs(ball_angle) > 45 ? -150 : -30;
+                              } else if (Line.check(3)) {
+                                    tmp_move_angle = abs(ball_angle) > 45 ? -135 : -45;
                               } else {
-                                    tmp_move_speed = abs(abs(ball_angle) - 45) * LINE_BALL_P + (BALL_FOLLOW_DEPTH_NEAR - ball_distance) * LINE_DISTANCE_P;
-                                    if (Line.check(2)) {
-                                          tmp_move_angle = abs(ball_angle) > 45 ? -150 : -30;
-                                    } else if (Line.check(3)) {
-                                          tmp_move_angle = abs(ball_angle) > 45 ? -135 : -45;
-                                    } else {
-                                          tmp_move_angle = abs(ball_angle) > 45 ? 150 : ball_angle;
-                                          if (ball_distance < 60) {
-                                                line_timer.stop();
-                                                line_timer.reset();
-                                                *line_tf = 0;
-                                                wait = 0;
-                                          }
+                                    tmp_move_angle = abs(ball_angle) > 45 ? 150 : ball_angle;
+                                    if (ball_distance < 60) {
+                                          line_timer.stop();
+                                          line_timer.reset();
+                                          *line_tf = 0;
+                                          wait = 0;
                                     }
                               }
+
                               if (Line.check(4) || Line.front() || Line.back() || Line.left()) wait = 0;
                         } else if (*line_tf == 3 && abs(ball_angle) > 15) {
                               wait = 1;
@@ -554,32 +544,21 @@ void line_move(uint8_t* line_tf, int16_t line_move_speed, int16_t move_speed) { 
                               if (Line.check(7) || Line.front() || Line.right() || Line.left()) wait = 0;
                         } else if (*line_tf == 4 && ball_angle < 0) {
                               wait = 1;
-                              if (usensor.get() < 60) {
-                                    wait_angle = ball_distance > 80 ? 90 : 120;
-                                    tmp_move_speed = abs(abs(ball_angle) - wait_angle) * LINE_BALL_P + (BALL_FOLLOW_DEPTH_NEAR - ball_distance) * LINE_DISTANCE_P;
-                                    if (Line.check(8)) {
-                                          tmp_move_angle = abs(ball_angle) > wait_angle ? 150 : 30;
-                                    } else if (Line.check(9)) {
-                                          tmp_move_angle = abs(ball_angle) > wait_angle ? 135 : 45;
-                                    } else {
-                                          tmp_move_angle = abs(ball_angle) > wait_angle ? -150 : -30;
-                                    }
+                              tmp_move_speed = abs(abs(ball_angle) - 45) * LINE_BALL_P + (BALL_FOLLOW_DEPTH_NEAR - ball_distance) * 2;
+                              if (Line.check(8)) {
+                                    tmp_move_angle = abs(ball_angle) > 45 ? 150 : 30;
+                              } else if (Line.check(9)) {
+                                    tmp_move_angle = abs(ball_angle) > 45 ? 135 : 45;
                               } else {
-                                    tmp_move_speed = abs(abs(ball_angle) - 45) * LINE_BALL_P + (BALL_FOLLOW_DEPTH_NEAR - ball_distance) * 2;
-                                    if (Line.check(8)) {
-                                          tmp_move_angle = abs(ball_angle) > 45 ? 150 : 30;
-                                    } else if (Line.check(9)) {
-                                          tmp_move_angle = abs(ball_angle) > 45 ? 135 : 45;
-                                    } else {
-                                          tmp_move_angle = abs(ball_angle) > 45 ? -150 : ball_angle;
-                                          if (ball_distance < 60) {
-                                                line_timer.stop();
-                                                line_timer.reset();
-                                                *line_tf = 0;
-                                                wait = 0;
-                                          }
+                                    tmp_move_angle = abs(ball_angle) > 45 ? -150 : ball_angle;
+                                    if (ball_distance < 60) {
+                                          line_timer.stop();
+                                          line_timer.reset();
+                                          *line_tf = 0;
+                                          wait = 0;
                                     }
                               }
+
                               if (Line.check(10) || Line.front() || Line.right() || Line.back()) wait = 0;
                         } else if (*line_tf == 6 && abs(ball_angle) < 90) {
                               wait = 1;
